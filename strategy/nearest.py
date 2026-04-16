@@ -1,12 +1,12 @@
 def assign_tasks_nearest(vehicles, tasks, graph):
-    assignment = [] 
+    assignments = [] 
 
     for task in tasks:
-        if  task.completed or tasked.assigned:
+        if  task.completed or task.assigned:
             continue
 
         best_vehicle = None
-        best_dist = int('inf')
+        best_dist = float('inf')
 
         for v in vehicles:
             if v.status != "idle":
@@ -19,11 +19,11 @@ def assign_tasks_nearest(vehicles, tasks, graph):
                 best_vehicle = v
 
         if best_vehicle:
-            assignment.append((best_vehicle, tas1))
+            assignments.append((best_vehicle, task))
 
 
             best_vehicle.status = "busy"
             best_vehicle.task = task
             task.assigned = True
 
-    return assignment
+    return assignments
