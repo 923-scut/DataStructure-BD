@@ -1,114 +1,127 @@
-# DataStructure-BD
-华南理工大学大数据24数据结构大作业
-很好，这一步就是**项目成败关键：统一接口规范** 👍
-我帮你整理一份**可以直接放 README 的标准版（模块职责 + 数据结构 + 接口定义）**
+````markdown
+# 🚛 New Energy Logistics Scheduling Simulator
 
-👉 你可以原样发给组员使用
+## 1. Overview
+
+本项目实现一个**新能源物流调度仿真系统（Discrete Event Simulation）**，用于研究：
+
+- 多车辆任务调度策略
+- 路径规划与能耗约束
+- 充电行为对系统效率的影响
+
+系统支持策略对比、指标评估与扩展实验。
 
 ---
 
-# 📦 项目模块划分与接口规范（README版）
+## 2. System Architecture
 
----
-
-# 🧠 一、整体说明
-
-本项目实现一个**新能源物流调度仿真系统**，系统由四个模块组成：
+系统采用**模块化分层架构**：
 
 ```text
-map-module        （地图与路径）
-model-module      （数据结构定义）
-strategy-module   （调度策略）
-simulation-module （仿真系统）
-```
+simulation-module   # 仿真核心（唯一调度入口）
+│
+├── strategy-module # 调度策略（可扩展）
+├── map-module      # 地图与路径计算
+└── model-module    # 数据模型（统一定义）
+````
 
-系统运行流程：
+### Design Principles
+
+* **单一职责（SRP）**：每个模块仅负责一类问题
+* **接口隔离（API Contract）**：模块通过固定接口交互
+* **可扩展性优先**：策略、地图、任务生成均可替换
+* **仿真驱动（Simulation-driven）**：所有行为由 simulation 控制
+
+---
+
+## 3. Simulation Workflow
+
+系统按离散时间推进：
 
 ```text
-生成任务 → 调度策略分配 → 路径规划 → 车辆移动 → 电量判断 → 充电 → 完成任务 → 统计结果
+Task Generation
+      ↓
+Task Assignment (Strategy)
+      ↓
+Path Planning (Graph)
+      ↓
+Vehicle Movement
+      ↓
+Battery Consumption
+      ↓
+Charging Decision
+      ↓
+Task Completion
+      ↓
+Statistics Update
 ```
 
 ---
 
-# 🗺️ 二、map-module（地图模块）
-
-## 📌 职责
-
-* 构建道路图（Graph）
-* 提供最短路径与距离计算
+## 4. Module Specification
 
 ---
 
-## 🧠 数据结构
+## 4.1 map-module
+
+### Responsibility
+
+* 构建道路网络（Graph）
+* 提供最短路径与距离查询
+
+### Data Structure
 
 ```python
-graph: Dict[node_id, List[(neighbor_id, distance)]]
+graph: Dict[int, List[Tuple[int, float]]]
 ```
 
----
-
-## 🔌 对外接口（必须统一）
+### API Contract
 
 ```python
-def get_distance(graph, start, end) -> float:
-    """
-    输入：
-        graph: 图结构
-        start: 起点 node_id
-        end: 终点 node_id
-    输出：
-        最短距离（float）
-    """
+def get_distance(graph, start: int, end: int) -> float:
+    """Return shortest distance between two nodes."""
 ```
-
----
 
 ```python
-def get_path(graph, start, end) -> List[int]:
-    """
-    输入：
-        graph: 图结构
-        start: 起点 node_id
-        end: 终点 node_id
-    输出：
-        路径（node_id 列表）
-    """
+def get_path(graph, start: int, end: int) -> List[int]:
+    """Return shortest path as node sequence."""
 ```
 
----
+### Implementation Notes
 
-# 🧱 三、model-module（建模模块）
-
-## 📌 职责
-
-* 定义系统中所有数据结构（Vehicle / Task / Station）
+* 推荐算法：Dijkstra / A*
+* 要求：无副作用（pure function）
 
 ---
 
-## 🧠 数据结构
+## 4.2 model-module
 
-### Vehicle
+### Responsibility
+
+定义系统核心实体（**唯一数据源**）
+
+### Entities
+
+#### Vehicle
 
 ```python
 class Vehicle:
     id: int
-    position: int          # 当前节点
-    battery: float         # 当前电量
+    position: int
+    battery: float
     max_battery: float
-    capacity: float        # 载重上限
-    status: str            # idle / busy / charging
-    task: Task | None
+    capacity: float
+    status: str        # idle | busy | charging
+    task: Optional["Task"]
     path: List[int]
 ```
 
----
-
-### Task
+#### Task
 
 ```python
 class Task:
     id: int
-    location: int          # node_id
+    location: int
     weight: float
     release_time: int
     deadline: int
@@ -116,145 +129,129 @@ class Task:
     assigned: bool
 ```
 
----
-
-### Station
+#### Station
 
 ```python
 class Station:
     id: int
     location: int
-    queue: List[int]       # vehicle_id 队列
+    queue: List[int]
 ```
 
 ---
 
-## 🔌 对外接口
+## 4.3 strategy-module
 
-👉 无函数接口（仅提供类定义）
+### Responsibility
 
----
+实现任务分配策略（核心可扩展点）
 
-# 🧠 四、strategy-module（调度模块）
-
-## 📌 职责
-
-* 决定“哪辆车执行哪个任务”
-* 实现至少两种策略
-
----
-
-## 🧠 数据结构
-
-* vehicles: List[Vehicle]
-* tasks: List[Task]
-
----
-
-## 🔌 对外接口（必须统一🔥）
+### API Contract (STRICT)
 
 ```python
-def assign_tasks(vehicles, tasks, graph) -> List[tuple]:
+def assign_tasks(
+    vehicles: List[Vehicle],
+    tasks: List[Task],
+    graph
+) -> List[Tuple[Vehicle, Task]]:
     """
-    输入：
-        vehicles: 所有车辆列表
-        tasks: 所有未完成任务
-        graph: 地图
-
-    输出：
-        assignments: List[(vehicle, task)]
-
-    说明：
-        返回需要分配的 (车, 任务) 对
+    Return assignment pairs (vehicle, task)
+    Must NOT mutate input objects directly.
     """
 ```
 
----
+### Built-in Strategies
 
-## 📌 策略实现要求
+#### 1. Nearest Task First
 
-至少实现：
+* 基于最短距离
+* Greedy
 
-```text
-1. 最近任务优先
-2. 最大任务优先
-```
+#### 2. Largest Task First
 
----
+* 按 weight 排序
+* 优先处理高价值任务
 
-# ⚙️ 五、simulation-module（仿真模块）
+### Extension Guideline
 
-## 📌 职责
+新增策略需：
 
-* 控制系统运行（核心模块）
-* 调用 map / strategy / model
-
----
-
-## 🧠 数据结构
-
-* vehicles: List[Vehicle]
-* tasks: List[Task]
-* stations: List[Station]
-* graph
+* 实现同名函数
+* 不修改已有接口
+* 可被 simulation 动态切换
 
 ---
 
-## 🔌 对外接口
+## 4.4 simulation-module
+
+### Responsibility
+
+系统唯一调度入口，负责：
+
+* 时间推进
+* 状态更新
+* 模块调用协调
+
+---
+
+### Core API
 
 ```python
-def run_simulation(graph, vehicles, stations, T: int):
+def run_simulation(graph, vehicles, stations, T: int) -> Dict:
     """
-    输入：
-        graph: 地图
-        vehicles: 车辆列表
-        stations: 充电站列表
-        T: 仿真总时间
+    Run simulation for T time steps.
 
-    输出：
-        stats: Dict
+    Returns:
+        stats: {
+            total_tasks,
+            completed_tasks,
+            avg_completion_time,
+            total_reward
+        }
     """
 ```
 
 ---
 
-## 📌 内部流程（必须实现）
+### Execution Loop
 
-```text
+```python
 for time in range(T):
 
-    1. 生成新任务
-    2. 调用 assign_tasks 分配任务
-    3. 调用 get_path 获取路径
-    4. 更新车辆位置（逐步移动）
-    5. 更新电量
-    6. 判断是否需要充电
-    7. 处理充电逻辑
-    8. 完成任务
-    9. 记录数据
+    tasks += generate_tasks(time)
+
+    assignments = assign_tasks(vehicles, tasks, graph)
+
+    update_vehicle_tasks(assignments)
+
+    for vehicle in vehicles:
+        move_vehicle(vehicle, graph)
+        update_battery(vehicle)
+        check_and_charge(vehicle, stations, graph)
+        try_finish_task(vehicle, time)
+
+    record_metrics()
 ```
 
 ---
 
-## 🔌 内部辅助接口（建议实现）
+### Suggested Internal APIs
 
 ```python
 def generate_tasks(time) -> List[Task]
 ```
 
----
-
 ```python
 def move_vehicle(vehicle, graph)
 ```
 
----
+```python
+def update_battery(vehicle)
+```
 
 ```python
 def check_and_charge(vehicle, stations, graph)
 ```
-
----
 
 ```python
 def calculate_reward(task, finish_time) -> float
@@ -262,41 +259,61 @@ def calculate_reward(task, finish_time) -> float
 
 ---
 
-# 🔄 六、模块调用关系（统一规范）
+## 5. Vehicle State Machine
 
 ```text
-simulation-module（核心）
-    ↓
-    ├── strategy-module → assign_tasks()
-    ├── map-module → get_distance() / get_path()
-    └── model-module → 数据结构
+        +--------+
+        | idle   |
+        +--------+
+            |
+            v
+        +--------+
+        | busy   |
+        +--------+
+            |
+   battery low?
+        /    \
+      yes     no
+      v        v
++-----------+  |
+| charging  |<-+
++-----------+
 ```
 
 ---
 
-# ⚠️ 七、强制统一规则（必须遵守）
+## 6. Metrics Definition
+
+| Metric              | Description |
+| ------------------- | ----------- |
+| total_tasks         | 生成任务总数      |
+| completed_tasks     | 完成任务数       |
+| avg_completion_time | 平均完成耗时      |
+| total_reward        | 总收益         |
 
 ---
 
-## ❗ 1. 所有位置统一用 node_id
+## 7. Global Constraints (MUST FOLLOW)
+
+### 1. Node Representation
 
 ```text
-禁止使用 (x, y)
-必须使用 node_id
+All positions MUST use node_id
+(x, y) is NOT allowed
 ```
 
 ---
 
-## ❗ 2. 所有模块使用同一数据结构
+### 2. Data Model Consistency
 
 ```text
-必须 import model-module
-禁止重复定义 Vehicle / Task
+All modules MUST import model-module
+DO NOT redefine Vehicle / Task
 ```
 
 ---
 
-## ❗ 3. 接口函数名必须一致
+### 3. Interface Consistency
 
 ```text
 get_distance
@@ -307,40 +324,125 @@ run_simulation
 
 ---
 
-## ❗ 4. simulation 是唯一主控模块
+### 4. Control Ownership
 
 ```text
-其他模块不能自己运行系统
+ONLY simulation-module can drive execution
 ```
 
 ---
 
-# 🎯 八、最终目标
+## 8. Environment Setup
 
-系统运行输出：
-
-```text
-总任务数
-完成任务数
-平均完成时间
-总收益
-```
-
-并对比不同策略效果。
-
----
-
-# 🧠 最后一行总结（README结尾建议写）
+### 8.1 Python Version
 
 ```text
-本项目通过图结构建模道路网络，结合调度策略与仿真系统，实现新能源物流车队的动态调度与路径规划。
+Python == 3.12.3
 ```
 
 ---
 
-# 🚀 如果你下一步继续推进
+### 8.2 Create Virtual Environment
 
-我可以帮你：
+```bash
+python3.12 -m venv .venv
+```
 
-👉 把这份 README 转成 **项目目录结构 + 代码模板（直接开写）**
-👉 或帮你写一个 **最小可运行 demo（你们直接在上面扩展）**
+激活环境：
+
+```bash
+# Linux / Mac
+source .venv/bin/activate
+
+# Windows
+.venv\Scripts\activate
+```
+
+---
+
+### 8.3 Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+### 8.4 Verify Environment
+
+```bash
+python --version
+```
+
+期望输出：
+
+```text
+Python 3.12.3
+```
+
+---
+
+## 9. Project Structure
+
+```text
+project-root/
+│
+├── map-module/
+├── model-module/
+├── strategy-module/
+├── simulation-module/
+│
+├── main.py
+├── requirements.txt
+├── README.md
+├── .gitignore
+└── .venv/
+```
+
+---
+
+## 10. How to Run
+
+```bash
+python main.py
+```
+
+或：
+
+```python
+stats = run_simulation(graph, vehicles, stations, T=1000)
+print(stats)
+```
+
+---
+
+## 11. Extensibility
+
+可扩展方向：
+
+* 新调度策略（RL / heuristic / auction）
+* 多充电站策略
+* 动态电价模型
+* 不同地图结构（grid / real map）
+* 多任务组合（pickup & delivery）
+
+---
+
+## 12. Project Goal
+
+通过统一建模 + 策略对比，分析：
+
+* 调度策略对效率的影响
+* 电量约束下的系统行为
+* 路径与调度的耦合关系
+
+---
+
+## 13. Summary
+
+```text
+This project models a logistics system using graph-based routing and strategy-driven scheduling, enabling simulation and evaluation of electric vehicle fleet operations.
+```
+
+```
+```
