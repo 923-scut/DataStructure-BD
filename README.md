@@ -113,7 +113,7 @@ class Task:
     release_time: int
     deadline: int
     completed: bool
-    assigned:bool
+    assigned: bool
 ```
 
 ---

@@ -1,41 +1,29 @@
-# Prerequisites
-*.d
+# ========================
+# Python虚拟环境
+# ========================
+venv/
+env/
 
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
+# ========================
+# Python缓存
+# ========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
 
-# Precompiled Headers
-*.gch
-*.pch
+# ========================
+# VSCode配置
+# ========================
+.vscode/
 
-# Linker files
-*.ilk
+# ========================
+# 系统文件
+# ========================
+.DS_Store
+Thumbs.db
 
-# Debugger Files
-*.pdb
-
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
-# Executables
-*.exe
-*.out
-*.app
-
-# debug information files
-*.dwo
+# ========================
+# 日志文件
+# ========================
+*.log

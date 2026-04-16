@@ -1,5 +1,5 @@
 def assign_tasks_nearest(vehicles, tasks, graph):
-    assignment = [] #任务列表
+    assignment = [] 
 
     for task in tasks:
         if  task.completed or tasked.assigned:
